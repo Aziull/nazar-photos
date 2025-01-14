@@ -1,34 +1,42 @@
+import { useColumns } from '@/hooks/useColums';
 import * as MediaLibrary from 'expo-media-library';
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Dimensions, FlatList, Image, SectionList, StyleSheet, Text, View } from "react-native";
-const NUM_COLUMNS = 4; // Кількість стовпців у гріді
-const { width } = Dimensions.get('window');
 export default function PhotosScreen() {
   const [assets, setAssests] = useState<MediaLibrary.Asset[]>([]);
+  const [pagedInfo, setPagedInfo] = useState<Omit<MediaLibrary.PagedInfo<MediaLibrary.Asset>, 'assets'> | null>(null)
   const [status, requestPermission] = MediaLibrary.usePermissions();
 
+  const { width, height, totalColumns } = useColumns()
+  const loadPhotos = useCallback(async () => {
+    if (!status?.granted) return
+    try {
+      if (pagedInfo && !pagedInfo.hasNextPage) return
 
+      const result = await MediaLibrary.getAssetsAsync({
+        after: pagedInfo?.endCursor,
+
+        first: 300,
+        sortBy: 'creationTime',
+        mediaType: ['photo', 'video']
+      })
+      const { assets, ...info } = result
+      setAssests((prev) => ([...prev, ...assets]))
+      setPagedInfo(info)
+    } catch (e) {
+      alert('error')
+    }
+
+  }, [status, pagedInfo])
   useEffect(() => {
-    const loadPhotos = async () => {
+    const grage = async () => {
       if (status === null) {
         await requestPermission();
       }
-      try {
-        const result = await MediaLibrary.getAssetsAsync({
-          first: 300,
-          sortBy: 'creationTime',
-          mediaType: ['photo', 'video']
-        })
-        const { assets, ...info } = result
-        // console.log(result)
-        setAssests(assets)
-      } catch (e) {
-        alert('error')
-      }
-
     }
+    grage()
     loadPhotos()
-  }, [status])
+  }, [loadPhotos])
 
   const photos = assets
   if (!photos) {
@@ -62,20 +70,21 @@ export default function PhotosScreen() {
         contentContainerStyle={{
           gap: 10
         }}
+        onEndReached={loadPhotos}
+        onEndReachedThreshold={0.5}
         sections={groupByDate}
         keyExtractor={(item) => item.list[0].id}
         renderItem={({ item }) => (
 
           <FlatList
-            // contentContainerStyle={{ flexDirection: "row", flexWrap: 'wrap', gap: 1 }}
-            numColumns={NUM_COLUMNS}
+            numColumns={totalColumns}
             columnWrapperStyle={{
               gap: 1
             }}
-            key={NUM_COLUMNS}
+            key={totalColumns}
             data={item.list}
             renderItem={({ item: photo }) => (
-              <Image key={photo.id + photo.uri} style={{ width: width / NUM_COLUMNS, height: width / NUM_COLUMNS }} source={{ uri: photo.uri }} />
+              <Image key={photo.id + photo.uri} style={{ width, height }} source={{ uri: photo.uri }} />
             )}
             keyExtractor={(item) => item.id}
             ItemSeparatorComponent={() => <View style={{ height: 1 }} />}
