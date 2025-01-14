@@ -1,45 +1,13 @@
+import { useAssets } from '@/hooks/useAssets';
 import { useColumns } from '@/hooks/useColums';
 import * as MediaLibrary from 'expo-media-library';
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Dimensions, FlatList, Image, SectionList, StyleSheet, Text, View } from "react-native";
+import { useMemo } from "react";
+import { FlatList, Image, SectionList, StyleSheet, Text, View } from "react-native";
 export default function PhotosScreen() {
-  const [assets, setAssests] = useState<MediaLibrary.Asset[]>([]);
-  const [pagedInfo, setPagedInfo] = useState<Omit<MediaLibrary.PagedInfo<MediaLibrary.Asset>, 'assets'> | null>(null)
-  const [status, requestPermission] = MediaLibrary.usePermissions();
-
+  const { assets, loadMoreAssets } = useAssets()
   const { width, height, totalColumns } = useColumns()
-  const loadPhotos = useCallback(async () => {
-    if (!status?.granted) return
-    try {
-      if (pagedInfo && !pagedInfo.hasNextPage) return
 
-      const result = await MediaLibrary.getAssetsAsync({
-        after: pagedInfo?.endCursor,
-
-        first: 300,
-        sortBy: 'creationTime',
-        mediaType: ['photo', 'video']
-      })
-      const { assets, ...info } = result
-      setAssests((prev) => ([...prev, ...assets]))
-      setPagedInfo(info)
-    } catch (e) {
-      alert('error')
-    }
-
-  }, [status, pagedInfo])
-  useEffect(() => {
-    const grage = async () => {
-      if (status === null) {
-        await requestPermission();
-      }
-    }
-    grage()
-    loadPhotos()
-  }, [loadPhotos])
-
-  const photos = assets
-  if (!photos) {
+  if (!assets) {
     return (
       <View>
         <Text>No Data Yet</Text>
@@ -48,7 +16,7 @@ export default function PhotosScreen() {
   }
   const groupByDate = useMemo(() => {
     return Object.entries(
-      photos.reduce<Record<string, MediaLibrary.Asset[]>>((acc, photo) => {
+      assets.reduce<Record<string, MediaLibrary.Asset[]>>((acc, photo) => {
         const day = new Date(photo.creationTime)
         const dayLabel = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' }).format(day);
         if (!acc[dayLabel]) {
@@ -58,7 +26,7 @@ export default function PhotosScreen() {
         return acc
       }, {})
     ).map(([day, photos]) => ({ title: day, data: [{ list: photos }] }))
-  }, [photos])
+  }, [assets])
 
   return (
     <View style={styles.container}>
@@ -70,7 +38,7 @@ export default function PhotosScreen() {
         contentContainerStyle={{
           gap: 10
         }}
-        onEndReached={loadPhotos}
+        onEndReached={loadMoreAssets}
         onEndReachedThreshold={0.5}
         sections={groupByDate}
         keyExtractor={(item) => item.list[0].id}
