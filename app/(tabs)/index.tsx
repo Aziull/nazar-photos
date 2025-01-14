@@ -1,74 +1,121 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import * as MediaLibrary from 'expo-media-library';
+import { useEffect, useMemo, useState } from "react";
+import { Dimensions, FlatList, Image, SectionList, StyleSheet, Text, View } from "react-native";
+const NUM_COLUMNS = 4; // Кількість стовпців у гріді
+const { width } = Dimensions.get('window');
+export default function PhotosScreen() {
+  const [assets, setAssests] = useState<MediaLibrary.Asset[]>([]);
+  const [status, requestPermission] = MediaLibrary.usePermissions();
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 
-export default function HomeScreen() {
+  useEffect(() => {
+    const loadPhotos = async () => {
+      if (status === null) {
+        await requestPermission();
+      }
+      try {
+        const result = await MediaLibrary.getAssetsAsync({
+          first: 300,
+          sortBy: 'creationTime',
+          mediaType: ['photo', 'video']
+        })
+        const { assets, ...info } = result
+        // console.log(result)
+        setAssests(assets)
+      } catch (e) {
+        alert('error')
+      }
+
+    }
+    loadPhotos()
+  }, [status])
+
+  const photos = assets
+  if (!photos) {
+    return (
+      <View>
+        <Text>No Data Yet</Text>
+      </View>
+    )
+  }
+  const groupByDate = useMemo(() => {
+    return Object.entries(
+      photos.reduce<Record<string, MediaLibrary.Asset[]>>((acc, photo) => {
+        const day = new Date(photo.creationTime)
+        const dayLabel = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' }).format(day);
+        if (!acc[dayLabel]) {
+          acc[dayLabel] = [];
+        }
+        acc[dayLabel].push(photo);
+        return acc
+      }, {})
+    ).map(([day, photos]) => ({ title: day, data: [{ list: photos }] }))
+  }, [photos])
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+    <View style={styles.container}>
+      <SectionList
+        style={{
+          flex: 1,
+          width: '100%',
+        }}
+        contentContainerStyle={{
+          gap: 10
+        }}
+        sections={groupByDate}
+        keyExtractor={(item) => item.list[0].id}
+        renderItem={({ item }) => (
+
+          <FlatList
+            // contentContainerStyle={{ flexDirection: "row", flexWrap: 'wrap', gap: 1 }}
+            numColumns={NUM_COLUMNS}
+            columnWrapperStyle={{
+              gap: 1
+            }}
+            key={NUM_COLUMNS}
+            data={item.list}
+            renderItem={({ item: photo }) => (
+              <Image key={photo.id + photo.uri} style={{ width: width / NUM_COLUMNS, height: width / NUM_COLUMNS }} source={{ uri: photo.uri }} />
+            )}
+            keyExtractor={(item) => item.id}
+            ItemSeparatorComponent={() => <View style={{ height: 1 }} />}
+          />
+
+        )}
+        renderSectionHeader={({ section: { title } }) => (
+          <Text style={{
+            color: '#eee',
+            fontSize: 16,
+          }} >{title}</Text>
+        )}
+      />
+
+    </View>
+  )
+
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: {
+    flex: 1,
+    backgroundColor: '#25292e',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    paddingTop: 60
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  text: {
+    color: '#fff',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
-});
+  gridItem: {
+    aspectRatio: 1, // Зробити елемент квадратним
+    backgroundColor: '#ccc',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 5,
+  },
+})
