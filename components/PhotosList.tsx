@@ -1,8 +1,7 @@
 import { useColumns } from "@/hooks/useColums";
 import { usePhotosSectionList } from "@/hooks/usePhotosSectionList";
 import { Section } from "@/types";
-import { Asset } from "expo-media-library";
-import { SectionList } from "react-native";
+import { SectionList, StyleSheet } from "react-native";
 
 interface PhotosListProps {
     sections: Section[]
@@ -20,13 +19,8 @@ export default function PhotosList({ sections, loadMoreAssets }: PhotosListProps
     return (
         <SectionList
             removeClippedSubviews
-            style={{
-                flex: 1,
-                width: '100%',
-            }}
-            contentContainerStyle={{
-                gap: 10
-            }}
+            style={styles.container}
+            contentContainerStyle={styles.contentContainerStyle}
             onEndReached={loadMoreAssets}
             onEndReachedThreshold={0.5}
             sections={sections}
@@ -36,3 +30,13 @@ export default function PhotosList({ sections, loadMoreAssets }: PhotosListProps
         />
     )
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        width: '100%',
+    },
+    contentContainerStyle: {
+        gap: 10
+    }
+})

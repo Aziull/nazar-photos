@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { Asset } from 'expo-media-library';
 import { useCallback } from 'react';
-import { FlatList, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 const PLACEHOLDER = require('@/assets/images/placeholder-rect.png');
 const SEPARATOR_HEIGHT = 1
 export const usePhotosSectionList = ({
@@ -31,20 +31,17 @@ export const usePhotosSectionList = ({
 
     const flatListKeyExtractor = useCallback((item: Asset) => item.id, []);
 
-    // Функція рендеру SectionList
     const renderSectionList = useCallback(
         ({ item }: { item: { list: Asset[] } }) => (
             <FlatList
                 removeClippedSubviews
                 numColumns={totalColumns}
-                columnWrapperStyle={{
-                    gap: 1,
-                }}
+                columnWrapperStyle={styles.flatListColumnWrapperStyle}
                 key={totalColumns}
                 data={item.list}
                 renderItem={renderFlatListImage}
                 keyExtractor={flatListKeyExtractor}
-                ItemSeparatorComponent={() => <View style={{ height: SEPARATOR_HEIGHT }} />}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
                 getItemLayout={(_, index) => ({
                     length: height + SEPARATOR_HEIGHT,
                     offset: index * (height + SEPARATOR_HEIGHT),
@@ -62,7 +59,7 @@ export const usePhotosSectionList = ({
 
     const renderSectionHeader = useCallback(
         ({ section: { title } }: { section: { title: string } }) => (
-            <Text style={{ color: '#eee', fontSize: 16 }}>{title}</Text>
+            <Text style={styles.headerText}>{title}</Text>
         ),
         []
     );
@@ -73,3 +70,16 @@ export const usePhotosSectionList = ({
         renderSectionHeader,
     };
 };
+
+const styles = StyleSheet.create({
+    separator: {
+        height: SEPARATOR_HEIGHT
+    },
+    flatListColumnWrapperStyle: {
+        gap: SEPARATOR_HEIGHT
+    },
+    headerText: {
+        color: '#eee',
+        fontSize: 16
+    }
+})
