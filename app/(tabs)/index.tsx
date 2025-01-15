@@ -69,16 +69,9 @@ export default function PhotosScreen() {
             )}
             keyExtractor={(item) => item.id}
             ItemSeparatorComponent={() => <View style={{ height: 1 }} />}
-            getItemLayout={(_, index) => {
-              const itemHeight = height + 1;
-              const offsetY = Math.floor(index / totalColumns) * itemHeight;
-
-              return {
-                length: itemHeight,
-                offset: offsetY,
-                index,
-              };
-            }}
+            getItemLayout={(_, index) => (
+              { length: height, offset: height * index, index }
+            )}
           />
 
         )}
