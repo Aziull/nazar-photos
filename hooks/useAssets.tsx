@@ -12,7 +12,7 @@ export const useAssets = () => {
             const result = await MediaLibrary.getAssetsAsync({
                 after: pagedInfo?.endCursor,
 
-                first: 300,
+                first: 150,
                 sortBy: 'creationTime',
                 mediaType: ['photo', 'video']
             })

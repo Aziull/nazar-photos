@@ -1,8 +1,11 @@
 import { useAssets } from '@/hooks/useAssets';
 import { useColumns } from '@/hooks/useColums';
+import { Image } from 'expo-image';
 import * as MediaLibrary from 'expo-media-library';
 import { useMemo } from "react";
-import { FlatList, Image, SectionList, StyleSheet, Text, View } from "react-native";
+import { FlatList, SectionList, StyleSheet, Text, View } from "react-native";
+
+const PLACEHOLDER = require('@/assets/images/placeholder-rect.png')
 export default function PhotosScreen() {
   const { assets, loadMoreAssets } = useAssets()
   const { width, height, totalColumns } = useColumns()
@@ -31,6 +34,7 @@ export default function PhotosScreen() {
   return (
     <View style={styles.container}>
       <SectionList
+        removeClippedSubviews
         style={{
           flex: 1,
           width: '100%',
@@ -41,21 +45,40 @@ export default function PhotosScreen() {
         onEndReached={loadMoreAssets}
         onEndReachedThreshold={0.5}
         sections={groupByDate}
-        keyExtractor={(item) => item.list[0].id}
+        keyExtractor={(item, id) => id + item.list[0].id}
         renderItem={({ item }) => (
 
           <FlatList
+            removeClippedSubviews
             numColumns={totalColumns}
             columnWrapperStyle={{
               gap: 1
             }}
             key={totalColumns}
             data={item.list}
-            renderItem={({ item: photo }) => (
-              <Image key={photo.id + photo.uri} style={{ width, height }} source={{ uri: photo.uri }} />
+            renderItem={({ item: photo, index }) => (
+              <Image
+                key={index + photo.id + photo.uri}
+                placeholder={PLACEHOLDER}
+                placeholderContentFit='contain'
+                style={{ width, height }}
+                source={{
+                  uri: photo.uri,
+                }}
+              />
             )}
             keyExtractor={(item) => item.id}
             ItemSeparatorComponent={() => <View style={{ height: 1 }} />}
+            getItemLayout={(_, index) => {
+              const itemHeight = height + 1;
+              const offsetY = Math.floor(index / totalColumns) * itemHeight;
+
+              return {
+                length: itemHeight,
+                offset: offsetY,
+                index,
+              };
+            }}
           />
 
         )}
