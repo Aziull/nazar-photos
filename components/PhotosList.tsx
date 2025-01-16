@@ -5,10 +5,9 @@ import { SectionList, StyleSheet } from "react-native";
 
 interface PhotosListProps {
     sections: Section[]
-    loadMoreAssets: () => void
 }
 
-export default function PhotosList({ sections, loadMoreAssets }: PhotosListProps) {
+export default function PhotosList({ sections }: PhotosListProps) {
     const { width, height, totalColumns } = useColumns()
 
     const {
@@ -18,11 +17,10 @@ export default function PhotosList({ sections, loadMoreAssets }: PhotosListProps
     } = usePhotosSectionList({ width, height, totalColumns });
     return (
         <SectionList
+            windowSize={150}
             removeClippedSubviews
             style={styles.container}
             contentContainerStyle={styles.contentContainerStyle}
-            onEndReached={loadMoreAssets}
-            onEndReachedThreshold={0.5}
             sections={sections}
             keyExtractor={sectionListKeyExtractor}
             renderItem={renderSectionList}
