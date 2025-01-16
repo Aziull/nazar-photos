@@ -1,41 +1,52 @@
 import * as MediaLibrary from 'expo-media-library';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 export const useAssets = () => {
     const [assets, setAssests] = useState<MediaLibrary.Asset[]>([]);
     const [pagedInfo, setPagedInfo] = useState<Omit<MediaLibrary.PagedInfo<MediaLibrary.Asset>, 'assets'> | null>(null)
     const [status, requestPermission] = MediaLibrary.usePermissions();
-    const loadMoreAssets = useCallback(async () => {
-        if (!status?.granted) return
+    const isLoading = useRef(false);
+    const loadMoreAssets = useCallback(async (cursor?: string) => {
+        if (isLoading.current) return;
+        isLoading.current = true;
         try {
-            if (pagedInfo && !pagedInfo.hasNextPage) return
-
             const result = await MediaLibrary.getAssetsAsync({
-                after: pagedInfo?.endCursor,
-
-                first: 150,
                 sortBy: 'creationTime',
-                mediaType: ['photo', 'video']
+                mediaType: ['photo', 'video'],
+                after: cursor
             })
             const { assets, ...info } = result
             setAssests((prev) => ([...prev, ...assets]))
             setPagedInfo(info)
+            if (info.hasNextPage) {
+                return info.endCursor
+            } else {
+                return undefined
+            }
         } catch (e) {
             alert('error')
+        } finally {
+            isLoading.current = false
         }
 
-    }, [status, pagedInfo])
-    useEffect(() => {
-        const grage = async () => {
-            if (status === null) {
-                await requestPermission();
-            }
+    }, [])
+
+    const loadAllAssets = useCallback(async (cursor?: string) => {
+        const nextCursor = await loadMoreAssets(cursor);
+        if (nextCursor) {
+            await loadAllAssets(nextCursor)
         }
-        grage()
-        loadMoreAssets()
+
     }, [loadMoreAssets])
 
+    useEffect(() => {
+        if (status?.granted) {
+            loadAllAssets(undefined);
+        } else if (status === null) {
+            requestPermission();
+        }
+    }, [status, loadAllAssets]);
     return {
         assets,
-        loadMoreAssets
+        pagedInfo
     }
 }
